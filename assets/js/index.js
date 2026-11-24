@@ -3,14 +3,18 @@
     var SINGLE_POINTS = [10, 7, 5, 3, 2, 1];
     var CYCLE_POINTS = [[10, 7, 5, 3, 2, 1], [20, 14, 10, 6, 4, 2], [20, 14, 10, 6, 4, 2], [30, 21, 15, 9, 6, 3]];
     var STATUS_CODES = [0, 1, 2];
+    var TRUE_VALUES = ["1", "true", "yes", "y", "on", "t"];
+    var QUALIFICATION_VALUES = ["byeup", "seedup", "up", "stayup", "stay", "staydown", "down"];
     var CONTROL_KEYS = [
         ["header", "ctrlHeader"],
         ["status", "ctrlStatus"],
         ["points", "ctrlPoints"],
+        ["qualification", "ctrlQualification"],
         ["maps", "ctrlMaps"],
         ["opponents", "ctrlOpponents"]
     ];
-    var STRUCTURAL_FIELDS = ["mapCount", "playerCount"];
+    var STRUCTURAL_FIELDS = ["mapCount", "playerCount", "qualSegments"];
+    var OPPONENT_FORMAT_SELECT = "opponentFormat";
 
     var matchList = document.getElementById("matchList");
     var outputEl = document.getElementById("output");
@@ -22,10 +26,12 @@
     var quickNav = document.getElementById("quickNav");
 
     var state = {
-        controls: { header: true, status: true, points: false, maps: true, opponents: true },
+        controls: { header: true, status: true, points: false, qualification: false, maps: true, opponents: true },
         system: "4n",
         autoTime: true,
         interval: 40,
+        opponentFormat: "oneLine",
+        rawBefore: [],
         collapsedMatches: {},
         collapsedPlayers: {},
         matches: [createMatch()]
@@ -41,6 +47,12 @@
             header: "",
             status: 0,
             points: [0, 0, 0, 0, 0, 0],
+            qualSegments: "",
+            qualStatuses: {},
+            inlineKeys: [],
+            rawInner: [],
+            rawOuter: [],
+            rawStream: false,
             timezone: "CST",
             mapCount: 4,
             playerCount: 6,
@@ -75,6 +87,10 @@
             .replace(/>/g, "&gt;");
     }
 
+    function isTruthy(value) {
+        return TRUE_VALUES.includes(String(value === undefined || value === null ? "" : value).trim().toLowerCase());
+    }
+
     function pointsForRank(rank, mapIndex) {
         var value = String(rank).trim();
         if (value === "") return "";
@@ -82,6 +98,52 @@
         if (!Number.isInteger(number) || number < 1 || number > 6) return "";
         var table = state.system === "single" ? SINGLE_POINTS : CYCLE_POINTS[mapIndex % 4];
         return table[number - 1];
+    }
+
+    function splitQualSegments(value) {
+        return String(value || "").split(",").map(function (part) { return part.trim(); }).filter(Boolean);
+    }
+
+    function applyQualification(match, value) {
+        var statuses = {};
+        splitQualSegments(value).forEach(function (part) {
+            var pair = part.split("=");
+            var key = pair[0].trim();
+            var code = (pair[1] || "").trim();
+            if (key) statuses[key] = QUALIFICATION_VALUES.includes(code) ? code : "";
+        });
+        match.qualSegments = Object.keys(statuses).join(",");
+        match.qualStatuses = statuses;
+    }
+
+    function qualificationValue(match) {
+        return splitQualSegments(match.qualSegments).map(function (segment) {
+            var code = match.qualStatuses[segment];
+            return code ? segment + "=" + code : "";
+        }).filter(Boolean).join(",");
+    }
+
+    function inlineTail(match, bgValue, inlineKeys) {
+        return inlineKeys.map(function (key) {
+            if (key === "bg") return "|bg=" + bgValue;
+            if (key === "twitch") return "|twitch=";
+            if (key === "youtube") return "|youtube=";
+            if (/^p\d+$/.test(key)) {
+                var value = String(match.points[Number(key.slice(1)) - 1] || "").trim();
+                var numeric = Number(value);
+                return "|" + key + "=" + (value === "" ? "" : (Number.isNaN(numeric) ? value : numeric));
+            }
+            return "";
+        }).join("");
+    }
+
+    function inlineComplete(match, bgValue, inlineKeys) {
+        return inlineKeys.length > 0 && inlineKeys.every(function (key) {
+            if (key === "twitch" || key === "youtube") return true;
+            if (key === "bg") return !!bgValue;
+            if (/^p\d+$/.test(key)) return String(match.points[Number(key.slice(1)) - 1] || "").trim() !== "";
+            return false;
+        });
     }
 
     function resizeMaps(match) {
@@ -207,6 +269,19 @@
             sections.push('<div class="section"><div class="points-grid">' + points + "</div></div>");
         }
 
+        if (state.controls.qualification) {
+            var qualSegments = splitQualSegments(match.qualSegments);
+            var qualCells = qualSegments.map(function (segment, segmentIndex) {
+                var selected = match.qualStatuses[segment] || "";
+                var qualOptions = '<option value="" ' + (selected ? "" : "selected") + ">--</option>" + QUALIFICATION_VALUES.map(function (code) {
+                    return '<option value="' + code + '" ' + (selected === code ? "selected" : "") + ">" + code + "</option>";
+                }).join("");
+                return '<label class="qual-cell"><span>' + esc(segment) + '</span><select data-field="qualStatus" data-match="' + matchIndex + '" data-index="' + segmentIndex + '" data-segment="' + esc(segment) + '">' + qualOptions + "</select></label>";
+            }).join("");
+            sections.push('<div class="section"><div class="section-title"><span>' + t("qualTitle") + '</span><label><span>' + t("qualSegments") + '</span><input class="qual-input" type="text" value="' + esc(match.qualSegments) + '" placeholder="1,2-3,4-6" data-field="qualSegments" data-match="' + matchIndex + '"></label></div>' +
+                (qualCells ? '<div class="qual-grid">' + qualCells + "</div>" : '<div class="qual-empty">' + t("qualHint") + "</div>") + "</div>");
+        }
+
         if (state.controls.maps) {
             var rows = match.maps.map(function (map, mapIndex) {
                 return '<div class="map-row"><span class="row-label">m' + (mapIndex + 1) + '</span>' +
@@ -224,14 +299,14 @@
                 var cells = opponent.results.map(function (result, mapIndex) {
                     return '<div class="result-cell"><input type="number" min="1" max="6" step="1" value="' + esc(result.rank) + '" placeholder="' + t("rank") + '" data-field="rank" data-match="' + matchIndex + '" data-op="' + opponentIndex + '" data-index="' + mapIndex + '"></div>';
                 }).join("");
-                return '<div class="rank-row"><div class="opponent-meta">' +
+                return '<div class="rank-row"><span class="player-index">' + (opponentIndex + 1) + "</span>" + '<div class="opponent-meta">' +
                     '<input type="text" value="' + esc(opponent.name) + '" placeholder="' + t("player") + '" data-field="opName" data-match="' + matchIndex + '" data-index="' + opponentIndex + '">' +
                     '<input type="text" value="' + esc(opponent.flag) + '" placeholder="' + t("region") + '" data-field="opFlag" data-match="' + matchIndex + '" data-index="' + opponentIndex + '">' +
                     '<button type="button" class="icon-btn" data-action="removePlayer" data-match="' + matchIndex + '" data-index="' + opponentIndex + '">×</button></div>' +
                     '<div class="result-cells">' + cells + "</div></div>";
             }).join("");
             sections.push('<div class="section players-section' + (playersCollapsed ? " players-collapsed" : "") + '"><div class="section-title"><span>' + t("opponentsTitle") + '</span><label><span>' + t("playerCount") + '</span><input type="number" min="1" max="24" step="1" value="' + esc(match.playerCount) + '" data-field="playerCount" data-match="' + matchIndex + '"></label><button type="button" class="fold-inline" data-action="togglePlayers" data-match="' + matchIndex + '" aria-expanded="' + !playersCollapsed + '">' + (playersCollapsed ? "▸" : "▾") + '</button></div>' +
-                '<div class="players-body"><div class="rank-table" style="--maps:' + match.mapCount + '"><div class="rank-row rank-head-row"><span>' + t("player") + " / " + t("region") + '</span><div class="result-cells">' + headers + "</div></div>" + rowsOpponent + "</div></div></div>");
+                '<div class="players-body"><div class="rank-table" style="--maps:' + match.mapCount + '"><div class="rank-row rank-head-row"><span class="player-index">#</span><span>' + t("player") + " / " + t("region") + '</span><div class="result-cells">' + headers + "</div></div>" + rowsOpponent + "</div></div></div>");
         }
 
         return '<article class="match-card' + (matchCollapsed ? " collapsed" : "") + '" id="match-' + matchIndex + '">' + head + '<div class="match-body">' + cardActions + sections.join("") + "</div></article>";
@@ -325,11 +400,26 @@
         }
         if (field === "status") {
             match.status = Number(element.value);
+            if (match.status === 2) {
+                match.maps.forEach(function (map) { map.status = 2; });
+                matchList.querySelectorAll('[data-field="mapStatus"][data-match="' + matchIndex + '"]').forEach(function (select) {
+                    select.value = "2";
+                });
+            }
             return;
         }
         if (field === "points") {
             match.points[itemIndex] = element.value;
             updatePointStates(matchIndex);
+            return;
+        }
+        if (field === "qualSegments") {
+            match.qualSegments = element.value;
+            renderMatches();
+            return;
+        }
+        if (field === "qualStatus") {
+            match.qualStatuses[element.dataset.segment] = element.value;
             return;
         }
         if (field === "timezone") {
@@ -368,21 +458,33 @@
     }
 
     function generateOutput() {
-        return state.matches.map(function (match, matchIndex) {
+        var lines = [];
+        (state.rawBefore || []).forEach(function (raw) { lines.push(raw); });
+        state.matches.forEach(function (match, matchIndex) {
             var number = matchIndex + 1;
-            var lines = [];
+            var bgValue = qualificationValue(match);
+            var inlineKeys = match.inlineKeys || [];
+            var inline = state.controls.status && inlineComplete(match, bgValue, inlineKeys);
             if (state.controls.header) lines.push("|M" + number + "header=" + match.header);
-            if (state.controls.status) lines.push("|M" + number + "={{Match|finished=" + (match.status === 2 ? "true" : ""));
+            if (state.controls.status) {
+                lines.push("|M" + number + "={{Match|finished=" + (match.status === 2 ? "true" : "") + (inline ? inlineTail(match, bgValue, inlineKeys) : ""));
+            }
+            if (state.controls.qualification && bgValue && !(inline && inlineKeys.indexOf("bg") >= 0)) {
+                lines.push("    |bg=" + bgValue);
+            }
             if (state.controls.status) {
                 var stopped = false;
                 match.points.forEach(function (value, pointIndex) {
                     if (stopped) return;
                     var clean = String(value).trim();
                     var numeric = Number(clean);
-                    lines.push("    |p" + (pointIndex + 1) + "=" + (Number.isNaN(numeric) ? clean : numeric));
+                    var key = "p" + (pointIndex + 1);
+                    if (!inline || inlineKeys.indexOf(key) < 0) {
+                        lines.push("    |" + key + "=" + (Number.isNaN(numeric) ? clean : numeric));
+                    }
                     if (clean === "" || numeric === 0 || Number.isNaN(numeric)) stopped = true;
                 });
-                lines.push("    |twitch=|youtube=");
+                if ((!inline || inlineKeys.indexOf("twitch") < 0) && !match.rawStream) lines.push("    |twitch=|youtube=");
             }
             if (state.controls.maps) {
                 match.maps.forEach(function (map, mapIndex) {
@@ -391,18 +493,48 @@
                 });
             }
             if (state.controls.opponents) {
+                var fragments = match.opponents.map(function (opponent) {
+                    return opponent.results.map(function (result, mapIndex) {
+                        return "|m" + (mapIndex + 1) + "={{MS|" + result.rank + "|p=" + result.points + "}}";
+                    });
+                });
+                var widths = [];
+                fragments.forEach(function (row) {
+                    row.forEach(function (cell, columnIndex) {
+                        widths[columnIndex] = Math.max(widths[columnIndex] || 0, cell.length);
+                    });
+                });
+                fragments = fragments.map(function (row) {
+                    return row.map(function (cell, columnIndex) {
+                        var lastInLine = state.opponentFormat === "perRound"
+                            ? (columnIndex % 4 === 3 || columnIndex === row.length - 1)
+                            : (columnIndex === row.length - 1);
+                        if (lastInLine) return cell;
+                        return cell + " ".repeat(widths[columnIndex] - cell.length);
+                    });
+                });
                 match.opponents.forEach(function (opponent, opponentIndex) {
                     lines.push("    |opponent" + (opponentIndex + 1) + "={{SoloOpponent|" + opponent.name + "|flag=" + opponent.flag);
-                    var results = opponent.results.map(function (result, mapIndex) {
-                        return "|m" + (mapIndex + 1) + "={{MS|" + result.rank + "|p=" + result.points + "}}";
-                    }).join("");
-                    lines.push("        " + results);
+                    var row = fragments[opponentIndex];
+                    if (state.opponentFormat === "perRound") {
+                        for (var i = 0; i < row.length; i += 4) {
+                            lines.push("        " + row.slice(i, i + 4).join(""));
+                        }
+                    } else {
+                        lines.push("        " + row.join(""));
+                    }
                     lines.push("    }}");
                 });
             }
+            (match.rawInner || []).forEach(function (raw) { lines.push(raw); });
             if (state.controls.status) lines.push("}}");
-            return lines.join("\n");
-        }).join("\n\n");
+            if (match.rawOuter && match.rawOuter.length) {
+                match.rawOuter.forEach(function (raw) { lines.push(raw); });
+            } else if (matchIndex < state.matches.length - 1) {
+                lines.push("");
+            }
+        });
+        return lines.join("\n");
     }
 
     function refreshOutput() {
@@ -410,10 +542,27 @@
         outputEl.textContent = outputText;
     }
 
+    function isKnownLine(line) {
+        return /^\|M\d+header=/.test(line)
+            || /^\|M\d+=\{\{Match\|finished=/.test(line)
+            || /^\|p\d+=/.test(line)
+            || /^\|bg=/.test(line)
+            || /^\|twitch=\|youtube=$/.test(line)
+            || /^\|twitch=$/.test(line)
+            || /^\|youtube=$/.test(line)
+            || /^\|map\d+=\{\{Map\|/.test(line)
+            || /^\|opponent\d+=\{\{SoloOpponent\|/.test(line)
+            || /^\|m\d+=\{\{MS\|/.test(line);
+    }
+
     function parseTemplate(text) {
         var parsed = [];
+        var rawBefore = [];
         var current = null;
         var opponent = null;
+        var seenFirst = false;
+        var inMatch = false;
+        var depth = 0;
 
         function ensureMatch(index) {
             while (parsed.length <= index) parsed.push(createMatch());
@@ -422,28 +571,60 @@
 
         text.split(/\r?\n/).forEach(function (raw) {
             var line = raw.trim();
-            if (!line || line.startsWith("//")) return;
+            var comment = line.startsWith("//");
+            var opens = comment ? 0 : (line.match(/\{\{/g) || []).length;
+            var closes = comment ? 0 : (line.match(/\}\}/g) || []).length;
 
             var header = line.match(/^\|M(\d+)header=(.*)$/);
             if (header) {
-                ensureMatch(Number(header[1]) - 1).header = header[2].trim();
+                current = ensureMatch(Number(header[1]) - 1);
+                current.header = header[2].trim();
+                opponent = null;
+                seenFirst = true;
                 return;
             }
 
             var start = line.match(/^\|M(\d+)=\{\{Match\|finished=(.*)$/);
             if (start) {
                 current = ensureMatch(Number(start[1]) - 1);
-                current.status = /true/i.test(start[2]) ? 2 : 0;
+                current.status = isTruthy(start[2].split("|")[0]) ? 2 : 0;
                 opponent = null;
+                current.inlineKeys = parseInlineTail(start[2], current);
+                inMatch = true;
+                depth = Math.max(opens - closes, 1);
+                seenFirst = true;
                 return;
             }
 
-            if (!current) return;
+            var inMatchBefore = inMatch;
+            if (inMatch) depth += opens - closes;
+            var known = line === "}}" ? inMatchBefore : isKnownLine(line);
+            if (!known && current && /^\|(twitch|youtube)=/.test(line)) current.rawStream = true;
+
+            if (known) {
+                seenFirst = true;
+            } else if (!seenFirst || !current) {
+                rawBefore.push(raw);
+            } else if (inMatchBefore) {
+                current.rawInner.push(raw);
+            } else {
+                current.rawOuter.push(raw);
+            }
+
+            if (inMatch && depth <= 0) inMatch = false;
+
+            if (comment || !line || !current || !known) return;
 
             var point = line.match(/^\|p(\d+)=(.*)$/);
             if (point) {
                 var pointIndex = Number(point[1]) - 1;
                 if (pointIndex >= 0 && pointIndex < 6) current.points[pointIndex] = point[2].trim();
+                return;
+            }
+
+            var bgLine = line.match(/^\|bg=(.*)$/);
+            if (bgLine) {
+                applyQualification(current, bgLine[1].trim());
                 return;
             }
 
@@ -455,7 +636,7 @@
                 var abbrMatch = dateText.match(/\{\{Abbr\/([^}]+)\}\}/);
                 if (abbrMatch) current.timezone = abbrMatch[1];
                 var plain = dateText.replace(/\s*\{\{Abbr\/[^}]+\}\}/g, "").trim();
-                current.maps[mapIndex] = { time: toLocalInput(plain), status: /true/i.test(map[3]) ? 2 : 0, vod: map[4].trim() };
+                current.maps[mapIndex] = { time: toLocalInput(plain), status: isTruthy(map[3]) ? 2 : 0, vod: map[4].trim() };
                 return;
             }
 
@@ -492,7 +673,24 @@
             recalcPoints(match);
         });
 
-        return parsed;
+        return { matches: parsed, rawBefore: rawBefore };
+    }
+
+    function parseInlineTail(tail, match) {
+        var keys = [];
+        var keyPattern = /\|(p\d+|bg|twitch|youtube)=/g;
+        var found;
+        while ((found = keyPattern.exec(tail)) !== null) keys.push(found[1]);
+        if (!keys.length) return keys;
+        var bg = tail.match(/\|bg=([^|]*)/);
+        if (bg) applyQualification(match, bg[1].trim());
+        var pointPattern = /\|p(\d+)=([^|]*)/g;
+        var point;
+        while ((point = pointPattern.exec(tail)) !== null) {
+            var index = Number(point[1]) - 1;
+            if (index >= 0 && index < 6) match.points[index] = point[2].trim();
+        }
+        return keys;
     }
 
     function setMessage(element, text, kind) {
@@ -661,21 +859,49 @@
 
         document.getElementById("importBtn").addEventListener("click", function () {
             var result = parseTemplate(importTextEl.value);
-            if (!result.length) {
+            if (!result.matches.length) {
                 setMessage(importMessageEl, t("msgNoTemplate"), "err");
                 return;
             }
-            state.matches = result;
+            state.matches = result.matches;
+            state.rawBefore = result.rawBefore;
             renderMatches();
             refreshOutput();
-            setMessage(importMessageEl, t("msgImported").replace("{n}", result.length), "ok");
+            setMessage(importMessageEl, t("msgImported").replace("{n}", result.matches.length), "ok");
         });
+
+        var formatSelect = document.getElementById(OPPONENT_FORMAT_SELECT);
+        if (formatSelect) {
+            formatSelect.value = state.opponentFormat;
+            formatSelect.addEventListener("change", function (event) {
+                state.opponentFormat = event.target.value;
+                refreshOutput();
+            });
+        }
 
         var generateBtn = document.getElementById("generateBtn");
         if (generateBtn) {
             generateBtn.addEventListener("click", function () {
                 refreshOutput();
                 if (outputEl.scrollIntoView) outputEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+        }
+
+        var backToTop = document.getElementById("backToTop");
+        if (backToTop) {
+            backToTop.addEventListener("click", function () {
+                if (window.scrollTo) window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+        }
+
+        var notesSidebar = document.getElementById("notesSidebar");
+        var notesToggle = document.getElementById("notesToggle");
+        if (notesSidebar && notesToggle) {
+            if (window.innerWidth <= 860) notesSidebar.classList.add("is-collapsed");
+            notesToggle.setAttribute("aria-expanded", String(!notesSidebar.classList.contains("is-collapsed")));
+            notesToggle.addEventListener("click", function () {
+                var collapsed = notesSidebar.classList.toggle("is-collapsed");
+                notesToggle.setAttribute("aria-expanded", String(!collapsed));
             });
         }
 
