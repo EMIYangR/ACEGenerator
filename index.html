@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="EMI Yang">
+    <title>ACE Event Ranking & Points Generator</title>
+    <link rel="stylesheet" href="assets/css/index.css">
+</head>
+<body>
+<div id="container">
+    <header id="pageHeader" class="panel">
+        <div class="header-copy">
+            <h1 id="pageTitle" data-i18n="pageTitle">ACE Event Ranking & Points Generator</h1>
+        </div>
+        <div class="header-tools">
+            <button type="button" id="clearCookiesBtn" class="btn btn-danger" data-i18n="clearCookies">Clear cookies</button>
+            <button type="button" id="clearStorageBtn" class="btn btn-danger" data-i18n="clearStorage">Clear local data</button>
+            <button type="button" id="langToggle" class="btn lang-toggle">中文</button>
+            <span id="toolbarStatus" class="status" role="status" aria-live="polite"></span>
+        </div>
+    </header>
+    <main id="content">
+        <section class="panel">
+            <h2 data-i18n="importTitle">Template import</h2>
+            <textarea id="importText" spellcheck="false" data-i18n-ph="importPlaceholder"></textarea>
+            <div class="row">
+                <button type="button" id="importBtn" class="btn btn-primary" data-i18n="importBtn">Import template</button>
+                <button type="button" id="clearImportBtn" class="btn" data-i18n="clearBtn">Clear</button>
+                <span id="importMessage" class="status" role="status" aria-live="polite"></span>
+            </div>
+        </section>
+        <section class="panel">
+            <h2 data-i18n="controlTitle">Controls</h2>
+            <div id="controlNav" class="control-nav"></div>
+            <div class="point-bar">
+                <div id="pointRule" class="point-rule">
+                    <span class="rule-label" data-i18n="pointRule">Points rule</span>
+                    <label><input type="radio" name="globalSystem" value="single"><span data-i18n="single">BO1</span></label>
+                    <label><input type="radio" name="globalSystem" value="4n" checked><span data-i18n="cycle">BO4</span></label>
+                </div>
+                <button type="button" id="addMatchBtn" class="btn btn-primary" data-i18n="addMatch">Add match</button>
+            </div>
+            <div id="quickNav" class="quick-nav"></div>
+            <div id="matchList" class="match-list"></div>
+        </section>
+        <section class="panel">
+            <h2 data-i18n="outputTitle">Output</h2>
+            <div class="row output-actions">
+                <button type="button" id="copyBtn" class="btn" data-i18n="copy">Copy</button>
+                <button type="button" id="downloadBtn" class="btn" data-i18n="download">Download .txt</button>
+                <span id="outputMessage" class="status" role="status" aria-live="polite"></span>
+            </div>
+            <pre id="output" class="output"></pre>
+        </section>
+    </main>
+    <footer id="meta">
+        <div id="projectAddress" data-i18n-html="projectAddress"></div>
+        <div><a href="license.html" target="_blank" data-i18n="licenseLink">LICENSE</a></div>
+    </footer>
+</div>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/index.js"></script>
+</body>
+</html>
