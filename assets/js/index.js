@@ -11,6 +11,7 @@
         ["points", "ctrlPoints"],
         ["qualification", "ctrlQualification"],
         ["maps", "ctrlMaps"],
+        ["vod", "ctrlVod"],
         ["opponents", "ctrlOpponents"]
     ];
     var STRUCTURAL_FIELDS = ["mapCount", "playerCount", "qualSegments"];
@@ -26,7 +27,7 @@
     var quickNav = document.getElementById("quickNav");
 
     var state = {
-        controls: { header: true, status: true, points: false, qualification: false, maps: true, opponents: true },
+        controls: { header: true, status: true, points: false, qualification: false, maps: true, vod: true, opponents: true },
         system: "4n",
         autoTime: true,
         interval: 40,
@@ -231,8 +232,9 @@
 
     function renderControlNav() {
         controlNav.innerHTML = CONTROL_KEYS.map(function (item) {
+            var disabled = item[0] === "points";
             var active = state.controls[item[0]] ? " on" : "";
-            return '<label class="control-chip' + active + '"><input type="checkbox" data-control="' + item[0] + '" ' + (state.controls[item[0]] ? "checked" : "") + "><span>" + t(item[1]) + "</span></label>";
+            return '<label class="control-chip' + active + (disabled ? " disabled" : "") + '"><input type="checkbox" data-control="' + item[0] + '" ' + (disabled ? "disabled " : "") + (state.controls[item[0]] ? "checked" : "") + "><span>" + t(item[1]) + "</span></label>";
         }).join("");
     }
 
@@ -283,11 +285,12 @@
         }
 
         if (state.controls.maps) {
+            var vodClass = state.controls.vod ? "" : " vod-off";
             var rows = match.maps.map(function (map, mapIndex) {
-                return '<div class="map-row"><span class="row-label">m' + (mapIndex + 1) + '</span>' +
+                return '<div class="map-row' + vodClass + '"><span class="row-label">m' + (mapIndex + 1) + '</span>' +
                     '<input type="datetime-local" value="' + esc(map.time) + '" data-field="mapTime" data-match="' + matchIndex + '" data-index="' + mapIndex + '">' +
                     statusSelect(map.status, "mapStatus", matchIndex, mapIndex) +
-                    '<input class="vod" type="text" value="' + esc(map.vod) + '" placeholder="' + t("vod") + '" data-field="mapVod" data-match="' + matchIndex + '" data-index="' + mapIndex + '">' +
+                    (state.controls.vod ? '<input class="vod" type="text" value="' + esc(map.vod) + '" placeholder="' + t("vod") + '" data-field="mapVod" data-match="' + matchIndex + '" data-index="' + mapIndex + '">' : "") +
                     '<button type="button" class="icon-btn" data-action="removeMap" data-match="' + matchIndex + '" data-index="' + mapIndex + '">×</button></div>';
             }).join("");
             sections.push('<div class="section"><div class="section-title"><span>' + t("mapsTitle") + '</span><label><span>' + t("timezone") + '</span><input class="tz-input" type="text" value="' + esc(match.timezone) + '" placeholder="CST" data-field="timezone" data-match="' + matchIndex + '"></label><label><span>' + t("mapCount") + '</span><input type="number" min="1" max="20" step="1" value="' + esc(match.mapCount) + '" data-field="mapCount" data-match="' + matchIndex + '"></label><label><input type="checkbox" data-field="autoTime" ' + (state.autoTime ? "checked" : "") + '><span>' + t("autoTime") + '</span></label><label><span>' + t("interval") + '</span><input class="interval-input" type="number" min="1" max="240" step="1" value="' + esc(state.interval) + '" data-field="interval"></label></div>' + rows + "</div>");
@@ -399,13 +402,17 @@
             return;
         }
         if (field === "status") {
-            match.status = Number(element.value);
-            if (match.status === 2) {
-                match.maps.forEach(function (map) { map.status = 2; });
-                matchList.querySelectorAll('[data-field="mapStatus"][data-match="' + matchIndex + '"]').forEach(function (select) {
-                    select.value = "2";
-                });
+            var next = Number(element.value);
+            var previous = match.status;
+            if (previous === 2 && next !== 2 && !window.confirm(t("msgStatusRisk"))) {
+                element.value = String(previous);
+                return;
             }
+            match.status = next;
+            match.maps.forEach(function (map) { map.status = next; });
+            matchList.querySelectorAll('[data-field="mapStatus"][data-match="' + matchIndex + '"]').forEach(function (select) {
+                select.value = String(next);
+            });
             return;
         }
         if (field === "points") {
@@ -489,7 +496,8 @@
             if (state.controls.maps) {
                 match.maps.forEach(function (map, mapIndex) {
                     var date = formatMapDate(match, map);
-                    lines.push("    |map" + (mapIndex + 1) + "={{Map|date=" + (date ? date + " " : "") + "|finished=" + (map.status === 2 ? "true" : "") + "|vod=" + map.vod + "}}");
+                    var vodPart = state.controls.vod ? "|vod=" + map.vod : "";
+                    lines.push("    |map" + (mapIndex + 1) + "={{Map|date=" + (date ? date + " " : "") + "|finished=" + (map.status === 2 ? "true" : "") + vodPart + "}}");
                 });
             }
             if (state.controls.opponents) {
@@ -628,7 +636,7 @@
                 return;
             }
 
-            var map = line.match(/^\|map(\d+)=\{\{Map\|date=(.*?)\s*\|finished=(.*?)\s*\|vod=(.*?)\}\}$/);
+            var map = line.match(/^\|map(\d+)=\{\{Map\|date=(.*?)\s*\|finished=(.*?)(?:\s*\|vod=(.*?))?\}\}$/);
             if (map) {
                 var mapIndex = Number(map[1]) - 1;
                 while (current.maps.length <= mapIndex) current.maps.push({ time: "", status: 0, vod: "" });
@@ -636,7 +644,7 @@
                 var abbrMatch = dateText.match(/\{\{Abbr\/([^}]+)\}\}/);
                 if (abbrMatch) current.timezone = abbrMatch[1];
                 var plain = dateText.replace(/\s*\{\{Abbr\/[^}]+\}\}/g, "").trim();
-                current.maps[mapIndex] = { time: toLocalInput(plain), status: isTruthy(map[3]) ? 2 : 0, vod: map[4].trim() };
+                current.maps[mapIndex] = { time: toLocalInput(plain), status: isTruthy(map[3]) ? 2 : 0, vod: (map[4] || "").trim() };
                 return;
             }
 
@@ -761,7 +769,7 @@
 
         controlNav.addEventListener("change", function (event) {
             var key = event.target.dataset.control;
-            if (!key) return;
+            if (!key || event.target.disabled) return;
             state.controls[key] = event.target.checked;
             event.target.parentElement.classList.toggle("on", event.target.checked);
             renderMatches();

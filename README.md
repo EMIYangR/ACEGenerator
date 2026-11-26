@@ -39,6 +39,17 @@
 }}
 ```
 
+##### Games without VOD
+
+``` wikitext
+|M1={{Match|finished=
+    |p1=0
+    |twitch=|youtube=
+    |map1={{Map|date=November 29, 2026 - 19:00 {{Abbr/CST}} |finished=}}
+    |map2={{Map|date=November 29, 2026 - 19:40 {{Abbr/CST}} |finished=}}
+}}
+```
+
 ##### Qualification
 
 ``` wikitext
@@ -100,15 +111,16 @@
 
 ##### 1. Choose output sections
 
-The **Controls** row holds six checkboxes. Check only the sections you need; unchecked sections are neither displayed nor exported.
+The **Controls** row holds seven checkboxes. Check only the sections you need; unchecked sections are neither displayed nor exported. The Points checkbox is disabled in the lab stage; points are always preset.
 
 | Control | Output |
 | --- | --- |
 | Title | `Mxheader` line |
 | Match | match status, `\|pX=` and stream placeholders |
-| Points | manual `p1`–`p6` fields |
+| Points | manual `p1`–`p6` fields (disabled in the lab stage) |
 | Qualification | `\|bg=` rank segments and statuses |
-| Games | dates, VODs and game count |
+| Games | dates, statuses and game count |
+| VOD | `\|vod=` in every game line and its text field |
 | Players | names, regions and per-game ranks |
 
 ##### 2. Select the points rule
@@ -116,7 +128,7 @@ The **Controls** row holds six checkboxes. Check only the sections you need; unc
 - **BO1** — one points table for every game (`10 / 7 / 5 / 3 / 2 / 1`).
 - **BO4** — four cycling tables: `M1` 10 / 7 / 5 / 3 / 2 / 1, `M2` and `M3` 20 / 14 / 10 / 6 / 4 / 2, `M4` 30 / 21 / 15 / 9 / 6 / 3; the four tables repeat for later games.
 - **Add match** appends a new match card.
-- Points are recalculated whenever the rule or a rank changes; the manual Points fields stay hidden unless **Points** is checked.
+- Points are recalculated whenever the rule or a rank changes. Custom points are not supported in the lab stage, so the manual Points fields are unavailable.
 
 ##### 3. Import a template
 
@@ -128,10 +140,10 @@ The **Controls** row holds six checkboxes. Check only the sections you need; unc
 ##### 4. Fill the match header and status
 
 - **Title** fills `Mxheader`.
-- The **Match** dropdown sets `finished=true` only when it is set to **Finished**; choosing **Finished** also marks every game in that match as finished.
+- The **Match** dropdown sets `finished=true` only when it is set to **Finished**. Any status change is applied to every game in that match. Changing **Finished** back to **Pending** or **Running** asks for confirmation because reverting a match status may cause the status display of a finished match to be incorrect.
 - **Remove match** deletes the match card; when the last one is removed a fresh empty match is created.
 - The arrow on the right of the match header folds that match; the arrow on the right of **Player rankings** folds the player table.
-- When **Match** is checked, `\|pX=` and the stream placeholder line are always emitted, even though those fields have no UI.
+- When **Match** is checked, `|pX=` and the stream placeholder line are always emitted, even though those fields have no UI.
 
 ##### 5. Fill games and times
 
@@ -139,7 +151,7 @@ The **Controls** row holds six checkboxes. Check only the sections you need; unc
 - **Time zone** is typed per match (for example `CST`) and is emitted as `{{Abbr/CST}}` only after a game time exists.
 - **Auto-fill next** copies the first game time forward by **Interval (min)**; editing a later game recalculates the following games. Uncheck it to stop automatic filling.
 - **Interval (min)** sets the gap between games, from 1 to 240 minutes.
-- Each game row has a **datetime-local** picker, a status dropdown, a **VOD** text field and a `×` button that removes that single game.
+- Each game row has a **datetime-local** picker, a status dropdown and a `×` button that removes that single game. The **VOD** text field is shown only when **VOD** is checked; with it unchecked, `|vod=` is omitted from the output.
 
 ##### 6. Fill players
 
@@ -155,7 +167,7 @@ The quick navigation bar is pinned to the top while scrolling; the floating butt
 - **Expand all** / **Collapse all** unfold or fold every match and player table at once.
 - **↑ Top** returns to the top of the page.
 - On narrow screens the notes block is pinned to the top of the page and starts collapsed; click **☰ Notes** to expand it, click again to fold it.
-- The notes warn against using the **Points** option, remind that this is an early version, and list the preset points rules.
+- The notes explain that custom points are not supported in the lab stage, remind that this is an early version, and list the preset points rules.
 - **Recent updates** records the latest changes (currently "Fixed some known issues.") and is shown as a plain line without a box.
 
 ##### 8. Export and reset
@@ -180,7 +192,8 @@ The output updates as you type.
 | Clear | Template import | Empties the import box. |
 | Add match | Controls | Appends an empty match card. |
 | Points rule (BO1 / BO4) | Controls | Selects the preset points table. |
-| Six control checkboxes | Controls | Show / hide and export only chosen sections. |
+| Seven control checkboxes | Controls | Show / hide and export only chosen sections; Points is disabled in the lab stage. |
+| VOD checkbox | Controls | Show VOD fields and include `\|vod=` in game lines. |
 | Add / Remove 4 games | Match card | Changes game count by four (one under BO1). |
 | Add / Remove 6 players | Match card | Changes player count by six. |
 | Remove match | Match header | Deletes that match. |
