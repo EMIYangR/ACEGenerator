@@ -134,12 +134,13 @@ The **Controls** row holds seven checkboxes. Check only the sections you need; u
 
 - **Template import** — the text area. Paste a match template, or a whole page copied with select-all.
 - **Import template** — parses the text and replaces the current match list.
+- The arrow next to **Template import** folds or unfolds the text area and buttons.
 - **Clear** — empties the text area and its status message.
 - Lines the generator does not manage — surrounding templates, headings, comments, extra parameters, `|footer=end`, stream lines with values — are kept in the output. To start empty, leave the box unchanged and use **Add match**.
 
 ##### 4. Fill the match header and status
 
-- **Title** fills `Mxheader`.
+- **Title** sits in the match header and fills `Mxheader`.
 - The **Match** dropdown sets `finished=true` only when it is set to **Finished**. Any status change is applied to every game in that match. Changing **Finished** back to **Pending** or **Running** asks for confirmation because reverting a match status may cause the status display of a finished match to be incorrect.
 - **Remove match** deletes the match card; when the last one is removed a fresh empty match is created.
 - The arrow on the right of the match header folds that match; the arrow on the right of **Player rankings** folds the player table.
@@ -172,7 +173,7 @@ The quick navigation bar is pinned to the top while scrolling; the floating butt
 
 ##### 8. Export and reset
 
-The output updates as you type.
+The output updates as you type. The arrow next to **Output** folds or unfolds the result area.
 
 - **Copy** copies the result.
 - **Download .txt** saves it as `ACE-template.txt`.
@@ -193,6 +194,7 @@ The output updates as you type.
 | Add match | Controls | Appends an empty match card. |
 | Points rule (BO1 / BO4) | Controls | Selects the preset points table. |
 | Seven control checkboxes | Controls | Show / hide and export only chosen sections; Points is disabled in the lab stage. |
+| Panel fold arrows | Template import / Output headings | Folds or unfolds that panel's body. |
 | VOD checkbox | Controls | Show VOD fields and include `\|vod=` in game lines. |
 | Add / Remove 4 games | Match card | Changes game count by four (one under BO1). |
 | Add / Remove 6 players | Match card | Changes player count by six. |

@@ -243,6 +243,7 @@
         var matchCollapsed = !!state.collapsedMatches[matchIndex];
         var playersCollapsed = !!state.collapsedPlayers[matchIndex];
         var head = '<div class="match-head"><h3>' + t("match") + " M" + (matchIndex + 1) + "</h3>" +
+            (state.controls.header ? '<input class="head-title" type="text" value="' + esc(match.header) + '" placeholder="' + t("headerLabel") + '" data-field="header" data-match="' + matchIndex + '">' : "") +
             (state.controls.status ? statusSelect(match.status, "status", matchIndex) : "") +
             '<span class="spacer"></span><button type="button" class="btn small btn-danger" data-action="removeMatch" data-match="' + matchIndex + '">' + t("removeMatch") + "</button>" +
             '<button type="button" class="icon-btn fold-btn" data-action="toggleMatch" data-match="' + matchIndex + '" aria-expanded="' + !matchCollapsed + '">' + (matchCollapsed ? "▸" : "▾") + "</button></div>";
@@ -258,10 +259,6 @@
             actions.push('<button type="button" class="btn small" data-action="removePlayers" data-match="' + matchIndex + '">' + t("removePlayers").replace("{n}", 6) + "</button>");
         }
         var cardActions = actions.length ? '<div class="card-actions">' + actions.join("") + "</div>" : "";
-
-        if (state.controls.header) {
-            sections.push('<div class="section"><div class="field-grid"><label class="field"><span>' + t("headerLabel") + '</span><input type="text" value="' + esc(match.header) + '" data-field="header" data-match="' + matchIndex + '"></label></div></div>');
-        }
 
         if (state.controls.points) {
             var points = match.points.map(function (value, pointIndex) {
@@ -912,6 +909,16 @@
                 notesToggle.setAttribute("aria-expanded", String(!collapsed));
             });
         }
+
+        document.getElementById("content").addEventListener("click", function (event) {
+            var fold = event.target.closest("[data-panel-fold]");
+            if (!fold) return;
+            var body = document.querySelector('[data-panel-body="' + fold.dataset.panelFold + '"]');
+            if (!body) return;
+            var collapsed = body.classList.toggle("is-collapsed");
+            fold.textContent = collapsed ? "▸" : "▾";
+            fold.setAttribute("aria-expanded", String(!collapsed));
+        });
 
         document.getElementById("copyBtn").addEventListener("click", async function () {
             try {

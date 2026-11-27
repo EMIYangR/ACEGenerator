@@ -257,6 +257,24 @@ pre {
     background: var(--accent);
 }
 
+.panel-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.panel-heading h2 {
+    flex: 1;
+}
+
+.panel-fold {
+    margin-top: -2px;
+}
+
+.panel-body.is-collapsed {
+    display: none;
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -555,11 +573,18 @@ textarea {
 
 .match-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     padding: 9px 12px;
     border-bottom: 1px solid var(--line);
     background: #f2f5f0;
+}
+
+.match-head .head-title {
+    flex: 1 1 180px;
+    width: auto;
+    min-width: 120px;
 }
 
 .match-head h3 {
@@ -640,23 +665,6 @@ textarea {
 
 .section-title .fold-inline {
     margin-left: auto;
-}
-
-.field-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-    gap: 10px;
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.field>span {
-    color: var(--muted);
-    font-size: 11.5px;
 }
 
 input[type="text"],
