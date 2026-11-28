@@ -364,11 +364,17 @@ textarea {
 }
 
 .row {
+    --bs-gutter-x: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     margin-top: 11px;
+}
+
+.row > * {
+    width: auto;
+    max-width: none;
 }
 
 .status {
@@ -560,6 +566,10 @@ textarea {
     display: none;
 }
 
+.games-section.games-collapsed .map-table {
+    display: none;
+}
+
 .players-section.players-collapsed .players-body {
     display: none;
 }
@@ -693,7 +703,8 @@ select {
     width: 96px;
 }
 
-.section-title input[type="number"].interval-input {
+.section-title input[type="number"].interval-input,
+.section-title input[type="number"].group-break-input {
     width: 64px;
 }
 
@@ -789,6 +800,16 @@ textarea:focus {
     width: 68px;
 }
 
+.map-table {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.map-table .map-row {
+    padding: 6px 10px;
+}
+
 .map-row {
     display: grid;
     grid-template-columns: 46px minmax(160px, 1fr) 106px minmax(120px, 1fr) 26px;
@@ -807,6 +828,20 @@ textarea:focus {
 
 .row-label {
     color: var(--muted);
+    text-align: center;
+}
+
+.map-head-row {
+    background: #f2f5f0;
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.map-head-row span,
+.rank-head-row .opponent-meta span,
+.rank-head-row .result-cells span {
+    text-align: center;
 }
 
 .icon-btn {
@@ -871,11 +906,29 @@ textarea:focus {
 
 .card-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px 14px;
     padding: 9px 13px;
     border-bottom: 1px solid var(--line);
     background: var(--soft);
+    overflow-x: auto;
+}
+
+.action-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 22px;
+    background: var(--line-strong);
+}
+
+.card-actions label {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    color: var(--muted);
 }
 
 .output {
@@ -929,6 +982,10 @@ textarea:focus {
 
     .map-row .vod {
         grid-column: 2 / 4;
+    }
+
+    .map-head-row span:nth-child(4) {
+        display: none;
     }
 
     .rank-row {

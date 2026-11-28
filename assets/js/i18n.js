@@ -10,34 +10,33 @@ window.I18n = (function () {
     }
 
     function apply() {
-        document.documentElement.lang = current === "zh" ? "zh-CN" : "en";
-        document.title = t("pageTitle");
-        document.body.classList.toggle("lang-zh", current === "zh");
-        document.querySelectorAll("[data-i18n]").forEach(function (node) {
-            node.textContent = t(node.getAttribute("data-i18n"));
+        $("html").attr("lang", current === "zh" ? "zh-CN" : "en");
+        $(document).attr("title", t("pageTitle"));
+        $("body").toggleClass("lang-zh", current === "zh");
+        $("[data-i18n]").each(function () {
+            $(this).text(t($(this).attr("data-i18n")));
         });
-        document.querySelectorAll("[data-i18n-html]").forEach(function (node) {
-            node.innerHTML = t(node.getAttribute("data-i18n-html"));
+        $("[data-i18n-html]").each(function () {
+            $(this).html(t($(this).attr("data-i18n-html")));
         });
-        document.querySelectorAll("[data-i18n-ph]").forEach(function (node) {
-            node.placeholder = t(node.getAttribute("data-i18n-ph"));
+        $("[data-i18n-ph]").each(function () {
+            $(this).attr("placeholder", t($(this).attr("data-i18n-ph")));
         });
-        var toggle = document.getElementById("langToggle");
-        if (toggle) toggle.textContent = current === "zh" ? "EN" : "中文";
+        $("#langToggle").text(current === "zh" ? "EN" : "中文");
     }
 
     function load(language) {
         current = language === "en" ? "en" : "zh";
         window.localStorage.setItem("aceLang", current);
         apply();
-        document.dispatchEvent(new CustomEvent("i18n:applied", { detail: current }));
+        $(document).trigger("i18n:applied", [current]);
         return current;
     }
 
     function reset() {
         current = "en";
         apply();
-        document.dispatchEvent(new CustomEvent("i18n:applied", { detail: current }));
+        $(document).trigger("i18n:applied", [current]);
         return current;
     }
 

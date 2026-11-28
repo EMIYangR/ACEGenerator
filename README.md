@@ -148,21 +148,25 @@ The **Controls** row holds seven checkboxes. Check only the sections you need; u
 
 ##### 5. Fill games and times
 
-- **Add / Remove 4 games** (or 1 under BO1) changes the game count in steps; the **Games** number field also accepts a manual value.
+- The card actions bar holds **Add / Remove 4 games** (or 1 under BO1), **Add / Remove 6 players**, then two checkboxes: **Auto-fill** and **Halftime break**. The checkbox state is the on/off switch.
+- The **Game data** row is styled like **Player rankings**: it holds **Time zone**, **Games**, and the two interval fields, whose visibility is controlled by those toggle buttons.
 - **Time zone** is typed per match (for example `CST`) and is emitted as `{{Abbr/CST}}` only after a game time exists.
-- **Auto-fill next** copies the first game time forward by **Interval (min)**; editing a later game recalculates the following games. Uncheck it to stop automatic filling.
-- **Interval (min)** sets the gap between games, from 1 to 240 minutes.
+- When **Auto-fill** is checked, **Auto-fill interval (min)** (1–240) copies the first game time forward; editing a later game recalculates the following games. Unchecking it hides the field and stops automatic filling.
+- When **Halftime break** is checked, **Halftime interval (min)** (10 by default) is added to the gap between game 2 and game 3 of every four-game group. Unchecking it hides the field and removes the extra gap.
+- The game table has a header row with **Games / Match time / Match status / VOD**. Each row is labelled G1…Gn and the headings are centered.
+- The **Game data** row has a fold arrow on its right, matching the player table; **Expand all** and **Collapse all** include it too.
 - Each game row has a **datetime-local** picker, a status dropdown and a `×` button that removes that single game. The **VOD** text field is shown only when **VOD** is checked; with it unchecked, `|vod=` is omitted from the output.
 
 ##### 6. Fill players
 
 - **Add / Remove 6 players** changes the player count by six; the **Players** number field also accepts a manual value.
+- The player table header lists **Player** and **Country/Region** in separate centered columns, with G1…Gn game columns; generated wikitext still uses `|mN=`.
 - Each player row has an index, a name, a region code (`cn` by default) and a rank input for every game; points are filled automatically from the preset table.
 - The `×` button at the end of a row removes that single player.
 
 ##### 7. Navigate and read the notes
 
-The quick navigation bar is pinned to the top while scrolling; the floating button in the lower-right corner returns to the top. The left column holds the notes card and a plain-text block with the project links and **Recent updates**.
+The quick navigation bar is pinned to the top while scrolling; the floating button in the lower-right corner returns to the top. The left column holds the notes card and a plain-text block with the project links, **Recent updates**, and the LICENSE link in the project links. The page uses Bootstrap and jQuery.
 
 - `M1…Mn` buttons jump to a match and expand it.
 - **Expand all** / **Collapse all** unfold or fold every match and player table at once.
@@ -197,6 +201,8 @@ The output updates as you type. The arrow next to **Output** folds or unfolds th
 | Panel fold arrows | Template import / Output headings | Folds or unfolds that panel's body. |
 | VOD checkbox | Controls | Show VOD fields and include `\|vod=` in game lines. |
 | Add / Remove 4 games | Match card | Changes game count by four (one under BO1). |
+| Auto-fill checkbox | Card actions | Switches automatic time filling and shows / hides its interval field. |
+| Halftime break checkbox | Card actions | Switches the extra gap between game 2 and 3 of each four-game group. |
 | Add / Remove 6 players | Match card | Changes player count by six. |
 | Remove match | Match header | Deletes that match. |
 | Fold arrows | Match header / Player rankings | Folds one match or the player table. |
